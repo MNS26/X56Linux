@@ -1,0 +1,26 @@
+# Build outputs
+result
+result/
+result-*/
+
+# Nix
+*.drv
+*.drv.lock
+
+# C build
+*.o
+x56d
+x56-ctrl
+
+# Editor
+*.swp
+*.swo
+*~
+
+# Others
+**.pp
+**.te
+
+# do include
+!udev/**
+!systemd/**

@@ -1,0 +1,14 @@
+# Udev rules for X-56 HOTAS
+# Place in /etc/udev/rules.d/99-x56.rules
+# Then run: sudo udevadm control --reload-rules && sudo udevadm trigger
+
+# Set read & write access to devices
+SUBSYSTEM=="usb", ATTR{idVendor}=="0738", MODE="0666", TAG+="uaccess", ENV{SYSTEMD_WANTS}="x56d.service"
+
+# Create symlink for easy identification
+SUBSYSTEM=="usb", ATTR{idVendor}=="0738", ATTR{idProduct}=="2221", SYMLINK+="x56-stick"
+SUBSYSTEM=="usb", ATTR{idVendor}=="0738", ATTR{idProduct}=="a221", SYMLINK+="x56-throttle"
+
+# Turn lights off by default
+SUBSYSTEM=="usb", ATTR{idVendor}=="0738", ATTR{idProduct}=="a221", RUN+="/usr/local/bin/x56-ctrl -d 1 -r 0,0,0"
+SUBSYSTEM=="usb", ATTR{idVendor}=="0738", ATTR{idProduct}=="2221", RUN+="/usr/local/bin/x56-ctrl -d 2 -r 0,0,0"

@@ -1,0 +1,14 @@
+[Unit]
+Description=X-56 HOTAS Daemon
+Requires=systemd-udev-settle.service
+After=systemd-udev-settle.service
+
+[Service]
+#Type=dbus
+#BusName=org.x56linux.x56d
+ExecStart=/usr/local/bin/x56d
+Restart=on-failure
+RestartSec=1
+
+[Install]
+WantedBy=multi-user.target
