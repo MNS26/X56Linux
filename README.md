@@ -35,7 +35,7 @@ gcc -o x56-ctrl -Wall -std=c99 src/x56-ctrl.c
 ./x56d  # Run in seperate terminal or use -d to run in background
 ./x56-ctrl -d 1 -r 255,0,0  # Set throttle to red
 ./x56-ctrl -d 2 -r 0,255,0  # Set joystick to green
-./x56-ctrl -d 3 -r 0,0,255  # Set both to blue
+./x56-ctrl -d 0 -r 0,0,255  # Set both to blue
 ```
 
 ### With Systemd
@@ -71,7 +71,7 @@ udevadm trigger
 
 | Option | Description |
 |--------|-------------|
-| `-d ID` | Target device (1=throttle, 2=joystick, 3=both) |
+| `-d ID` | Target device (0=both, 1=throttle, 2=joystick) |
 | `-r R,G,B` | Set RGB color (e.g., `-r 255,128,0`) |
 | `-a ID` | Axis ID for configuration (30=X, 31=Y, etc.) |
 | `--get` | Get current axis configuration |
@@ -86,7 +86,7 @@ x56-ctrl -d 1 -r 255,0,0
 x56-ctrl -d 2 -r 0,255,255
 
 # Set both devices to purple
-x56-ctrl -d 3 -r 128,0,128
+x56-ctrl -d 0 -r 128,0,128
 
 # Get throttle X axis configuration
 x56-ctrl -d 1 -a 30 --get
