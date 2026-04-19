@@ -4,7 +4,7 @@
 # Usage: ./rainbow-smooth.sh [device] [speed] [brightness]
 #   device: 1=throttle, 2=joystick, 0=both (default: 0)
 #   speed: steps per color cycle (default: 100)
-#   brightness: 0-100 (default: 00)
+#   brightness: 0-100 (default: 50)
 
 DEV=${1:-0}
 SPEED=${2:-100}

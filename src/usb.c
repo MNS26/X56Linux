@@ -26,6 +26,20 @@ int send_control(struct x56_dev *dev, uint16_t w_value, uint8_t *data, uint16_t 
   );
 }
 
+int get_control(struct x56_dev *dev, uint16_t w_value, uint8_t *data, uint16_t len)
+{
+  return libusb_control_transfer(
+    dev->handle,
+    0xA1,
+    0x01,
+    w_value,
+    INTERFACE_NUM,
+    data,
+    len,
+    1000
+  );
+}
+
 int read_interrupt(struct x56_dev *dev, uint8_t *data, size_t len)
 {
   return libusb_interrupt_transfer(

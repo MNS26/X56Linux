@@ -10,7 +10,7 @@ typedef struct {
   uint8_t devices;        // bitmask: bit 0 = device 1, bit 1 = device 2, etc.
   uint8_t expecting_data; // client is expecting data back
   uint8_t last_packet;    // if its the last packet
-  uint8_t success;        // if command completed correctly or not
+//  uint8_t success;        // if command completed correctly or not
   uint16_t w_value;       // USB control transfer wValue
   uint8_t data[64];       // actual data
   uint8_t crc;            // CRC-8 checksum
@@ -32,17 +32,6 @@ static inline uint8_t crc8(const uint8_t *data, size_t len) {
   return crc;
 }
 
-static inline uint8_t packet_crc(const packet_t *pkt) {
-  uint8_t buf[sizeof(packet_t) - 1];  // exclude crc field itself
-  buf[0] = pkt->devices;
-  buf[1] = pkt->expecting_data;
-  buf[2] = pkt->last_packet;
-  buf[3] = (uint8_t)(pkt->w_value & 0xFF);
-  buf[4] = (uint8_t)((pkt->w_value >> 8) & 0xFF);
-  for (int i = 0; i < 64; i++) {
-    buf[5 + i] = pkt->data[i];
-  }
-  return crc8(buf, sizeof(buf));
-}
+static inline uint8_t packet_crc(const packet_t *pkt) {return crc8((const uint8_t*)pkt, __builtin_offsetof(packet_t, crc));}
 
 #endif

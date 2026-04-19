@@ -59,7 +59,6 @@ Used to change the RGB lighting color on the device.
 
 | Field | Value |
 |-------|-------|
-| `w_value` | 0x0309 |
 | `data[0]` | 0x09 |
 | `data[1]` | 0x00 |
 | `data[2]` | 0x03 |

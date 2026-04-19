@@ -3,10 +3,10 @@
 
 #include <stdint.h>
 #include <libusb-1.0/libusb.h>
+#include "common.h"
 
 #define VENDOR_ID        0x0738
-#define PRODUCT_JOYSTICK 0x2221
-#define PRODUCT_THROTTLE 0xa221
+
 #define INTERFACE_NUM    2
 
 enum dev_type {
@@ -41,6 +41,7 @@ struct usb_ctx {
 };
 
 int send_control(struct x56_dev *dev, uint16_t w_value, uint8_t *data, uint16_t len);
+int get_control(struct x56_dev *dev, uint16_t w_value, uint8_t *data, uint16_t len);
 int read_interrupt(struct x56_dev *dev, uint8_t *data, size_t len);
 struct usb_ctx *usb_init_ctx(void);
 int usb_hotplug_init(struct usb_ctx *ctx, int (*callback)(enum dev_type, int));

@@ -16,7 +16,7 @@ All control transfers are sent on interface 2.
 * byte 1-3 = constant (0b 01 00)
 * byte 4 = axis id
 * byte 5-7 = constant (00 01 00)
-* bytes 1-8 = axis selection, axis id at byte 4 and 8
+* byte 8 = axis selection, axis id at byte 4 and 8 (this byte)
 * bytes 9-10 = xsat (0 to 1000)
 * bytes 11-12 = ysat (0 to 1000)
 * bytes 15-16 = curvature (0 to 1000)

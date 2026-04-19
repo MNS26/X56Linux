@@ -14,6 +14,10 @@
 
 #include "usb.h"
 #include "packet.h"
+#include "common.h"
+
+// TODO: auto get device config and store in daemon
+
 
 #define SOCKET_PATH "/run/x56-daemon.sock"
 
@@ -44,6 +48,7 @@ static void handle_client(int client_fd, struct usb_ctx *ctx)
   pkt.crc = 0;
   uint8_t expected_crc = packet_crc(&pkt);
   if (received_crc != expected_crc) {
+    fprintf(stderr, "crc failed! got %02X expected %02X\n", pkt.crc, expected_crc);
     packet_t err;
     memset(&err, 0, sizeof(packet_t));
     err.devices = 0;
@@ -57,7 +62,7 @@ static void handle_client(int client_fd, struct usb_ctx *ctx)
   }
   pkt.crc = received_crc;
 
-  uint8_t first_expecting = pkt.expecting_data;
+  uint8_t return_data = pkt.expecting_data;
 
   int ret = 0;
   uint16_t w_value = pkt.w_value;
@@ -66,23 +71,29 @@ static void handle_client(int client_fd, struct usb_ctx *ctx)
 
   // When devices == 0, iterate through all slots and send to active devices
   
-  fprintf(stdout, "received:\n");
-  for (int i=0; i<64 ;i++) {
-    fprintf(stdout, "%02X ",data[i]);
-    if ((i+1)%8 == 0 )
-      fprintf(stdout, "\n");
-  }
+//  fprintf(stdout, "received:\n");
+//  for (int i=0; i<64 ;i++) {
+//    fprintf(stdout, "%02X ",data[i]);
+//    if ((i+1)%8 == 0 )
+//      fprintf(stdout, "\n");
+//  }
 
   // Device 1 (index 0)
   if (pkt.devices == 0 || pkt.devices & 1) {
     struct x56_dev *d = ctx->devices[0];
     if (d && d->active) {
-      ret = send_control(d, w_value, data, 64);
-      fprintf(stdout, "ret=%d\n", ret);
-      if (first_expecting && ret >= 0) {
-        uint8_t response[64] = {0};
-        read_interrupt(d, response, 64);
-        memcpy(pkt.data, response, 64);
+      if (return_data) {
+        ret = get_control(d, w_value, data, 64);
+        fprintf(stderr, "[DAEMON] get_control w_value=0x%04X returned %d\n", w_value, ret);
+        fprintf(stderr, "[DAEMON] sending data to client: ");
+        for (int i = 0; i < 20 && ret > 0; i++) fprintf(stderr, "%02X ", data[i]);
+        if (ret > 0) fprintf(stderr, "\n");
+      } else {
+        ret = send_control(d, w_value, data, 64);
+//        fprintf(stderr, "[DAEMON] send_control returned %d w_value=0x%04X\n", ret, w_value);
+      }
+      if (return_data && ret >= 0) {
+        memcpy(pkt.data, data, 64);
       }
     }
   }
@@ -91,11 +102,18 @@ static void handle_client(int client_fd, struct usb_ctx *ctx)
   if (pkt.devices == 0 || pkt.devices & 2) {
     struct x56_dev *d = ctx->devices[1];
     if (d && d->active) {
-      ret = send_control(d, w_value, data, 64);
-      if (first_expecting && ret >= 0) {
-        uint8_t response[64] = {0};
-        read_interrupt(d, response, 64);
-        memcpy(pkt.data, response, 64);
+      if (return_data) {
+        ret = get_control(d, w_value, data, 64);
+        fprintf(stderr, "[DAEMON] get_control w_value=0x%04X returned %d\n", w_value, ret);
+        fprintf(stderr, "[DAEMON] sending data to client: ");
+        for (int i = 0; i < 20 && ret > 0; i++) fprintf(stderr, "%02X ", data[i]);
+        if (ret > 0) fprintf(stderr, "\n");
+      } else {
+        ret = send_control(d, w_value, data, 64);
+//        fprintf(stderr, "[DAEMON] send_control returned %d w_value=0x%04X\n", ret, w_value);
+      }
+      if (return_data && ret >= 0) {
+        memcpy(pkt.data, data, 64);
       }
     }
   }
@@ -110,10 +128,10 @@ static void handle_client(int client_fd, struct usb_ctx *ctx)
     }
   }
 
-  if (!first_expecting) {
+  if (!return_data) {
     memset(&pkt, 0, sizeof(packet_t));
     pkt.devices = 0;
-    pkt.expecting_data = first_expecting;
+    pkt.expecting_data = return_data;
     pkt.last_packet = 0;
     pkt.w_value = 0;
     pkt.data[0] = ret >= 0 ? 1 : 0;
