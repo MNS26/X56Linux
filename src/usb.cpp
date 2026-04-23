@@ -8,7 +8,7 @@
 
 struct hotplug_ctx {
   struct usb_ctx *ctx;
-  int (*callback)(enum dev_type type, int action);
+  int (*callback)(enum dev_type type, int action, struct x56_dev *dev);
   libusb_hotplug_callback_handle callback_handle;
 };
 
@@ -48,7 +48,7 @@ int read_interrupt(struct x56_dev *dev, uint8_t *data, size_t len)
     data,
     len,
     NULL,
-    1000
+    100
   );
 }
 
@@ -72,7 +72,7 @@ static int handle_hotplug(libusb_context *ctx, libusb_device *device,
               libusb_hotplug_event event, void *user_data)
 {
   (void)ctx;
-  struct hotplug_ctx *hp = user_data;
+  struct hotplug_ctx *hp = (struct hotplug_ctx*)user_data;
   struct usb_ctx *uctx = hp->ctx;
 
   struct libusb_device_descriptor desc;
@@ -84,7 +84,7 @@ static int handle_hotplug(libusb_context *ctx, libusb_device *device,
   uint8_t addr = libusb_get_device_address(device);
 
   if (LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED == event) {
-    enum dev_type type = 0;
+    enum dev_type type = DEV_NONE;
     const char *name = NULL;
 
     if (desc.idProduct == PRODUCT_THROTTLE) {
@@ -97,7 +97,7 @@ static int handle_hotplug(libusb_context *ctx, libusb_device *device,
 
     if (!type) return 0;
 
-    struct x56_dev *dev = calloc(1, sizeof(*dev));
+    struct x56_dev *dev = (x56_dev*)calloc(1, sizeof(*dev));
     if (!dev) return 0;
 
     dev->type = type;
@@ -125,7 +125,7 @@ static int handle_hotplug(libusb_context *ctx, libusb_device *device,
         name, dev->id, bus, addr);
 
     if (hp->callback) {
-      hp->callback(type, 1);
+      hp->callback(type, 1, dev);
     }
 
   } else if (LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT == event) {
@@ -134,23 +134,22 @@ static int handle_hotplug(libusb_context *ctx, libusb_device *device,
       if (d && d->bus == bus && d->addr == addr) {
         enum dev_type dev_type = d->type;
         fprintf(stderr, "Device disconnected: id=%d\n", d->id);
-        if (d->handle) libusb_close(d->handle);
+        //if (d->handle) libusb_close(d->handle);
         free(d);
         uctx->devices[i] = NULL;
         if (hp->callback) {
-          hp->callback(dev_type, 0);
+          hp->callback(dev_type, 0, NULL);
         }
         break;
       }
     }
   }
-
   return 0;
 }
 
 struct usb_ctx *usb_init_ctx(void)
 {
-  struct usb_ctx *ctx = calloc(1, sizeof(*ctx));
+  struct usb_ctx *ctx = (struct usb_ctx*)calloc(1, sizeof(*ctx));
   if (!ctx) {
     return NULL;
   }
@@ -165,9 +164,9 @@ struct usb_ctx *usb_init_ctx(void)
   return ctx;
 }
 
-int usb_hotplug_init(struct usb_ctx *ctx, int (*callback)(enum dev_type, int))
+int usb_hotplug_init(struct usb_ctx *ctx, int (*callback)(enum dev_type, int, struct x56_dev *))
 {
-  struct hotplug_ctx *hp = calloc(1, sizeof(*hp));
+  struct hotplug_ctx *hp = (struct hotplug_ctx*)calloc(1, sizeof(*hp));
   if (!hp) return -1;
 
   hp->ctx = ctx;
@@ -210,7 +209,7 @@ void usb_scan_devices(struct usb_ctx *ctx)
     uint8_t bus = libusb_get_bus_number(d);
     uint8_t addr = libusb_get_device_address(d);
     
-    enum dev_type type = 0;
+    enum dev_type type = DEV_NONE;
     const char *name = NULL;
     
     if (desc.idProduct == PRODUCT_THROTTLE) {
@@ -223,7 +222,7 @@ void usb_scan_devices(struct usb_ctx *ctx)
     
     if (!type) continue;
     
-    struct x56_dev *dev = calloc(1, sizeof(*dev));
+    struct x56_dev *dev = (x56_dev*)calloc(1, sizeof(*dev));
     if (!dev) continue;
     
     dev->type = type;
@@ -279,7 +278,6 @@ void usb_free_ctx(struct usb_ctx *ctx)
 
 int usb_set_rgb(struct x56_dev *dev, uint8_t r, uint8_t g, uint8_t b)
 {
-  uint8_t endPacket[64] = {0x01, 0x01};
   uint8_t packet[64] = {0};
   packet[0] = 0x09;
   packet[1] = 0x00;
@@ -289,7 +287,20 @@ int usb_set_rgb(struct x56_dev *dev, uint8_t r, uint8_t g, uint8_t b)
   packet[5] = b;
 
   int ret = send_control(dev, 0x0309, packet, 64);
-  ret = send_control(dev, 0x0300, endPacket, 64);
+  if (ret < 0) {
+    return ret;
+  }
+
+  return 0;
+}
+
+int usb_save_rgb(struct x56_dev *dev)
+{
+  uint8_t packet[64] = {0};
+  packet[0] = 0x01;
+  packet[1] = 0x01;
+
+  int ret = send_control(dev, 0x0309, packet, 64);
   if (ret < 0) {
     return ret;
   }

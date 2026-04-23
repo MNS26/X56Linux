@@ -107,7 +107,7 @@ Packet 1 (Unknown) [Set Report] [wValue 0x030b]
 
 ---
 
-### Get Axis Packet
+### Get Axis Packet (doesnt look like anythign usefull)
 
 (select axis for config request)
 Packet ??? (get Axis config) [Get Report] [wValue 0x0308]
@@ -115,22 +115,54 @@ Packet ??? (get Axis config) [Get Report] [wValue 0x0308]
 |  byte  |  Value | Desc  |
 |:------:|:------:|:-----:|
 | `0-16` |  0x30  | AXIS  | (axis value repeates)
-|  `17`  |  0x01  | ????? |
+|  `17`  |  0x02  | ????? |
 |  `18`  |  0x3f  | ????? |
-|  `19`  |  0x0b  |       |-\
-|  `20`  |  0x02  |       |--\ (looks like axis selection packet)
-|  `21`  |  0x00  |       |--/
-|  `22`  |  0x30  |       |-/
-|  `23`  |  0x00  | ????? |
-|  `24`  |  0x01  | ????? |
-|  `25`  |  0x00  | ????? |
-|  `26`  |  0x30  | AXIS? |
-|`27-28` | 0x03e8 | XSAT  |
-|`29-30` | 0x03e8 | YSAT  |
-|`31-32` | 0x0000 | DBAND |
-|`33-34` | 0x01f4 | CURVE |
-|  `35`  |  0x00  |PROFILE|
-|`36-37` | 0x7bf4 |  CAL  | (zero for non hall effect sensors)
+|`19-41` |  0x00  |       |
+|  `42`  |  0x30  |       |
+|  `43`  |  0x30  |       |
+|  `44`  |  0x59  |       |
+|  `45`  |  0xa6  |       |
+|  `46`  |  0x12  |       |
+|  `47`  |  0x03  |       |
+|  `48`  |  0x30  |       |
+|  `49`  |  0x30  |       |
+|  `50`  |  0x30  |       |
+|  `51`  |  0x30  |       |
+|  `52`  |  0x30  |       |
+|  `53`  |  0x30  |       |
+|  `54`  |  0x30  |       |
+|  `55`  |  0x30  |       |
+|  `56`  |  0x30  |       |
+|  `57`  |  0x30  |       |
+|  `58`  |  0x30  |       |
+|  `59`  |  0x30  |       |
+|  `60`  |  0x30  |       |
+|  `61`  |  0x30  |       |
+|  `62`  |  0x30  |       |
+|  `64`  |  0x55  |       |
+
+---
+
+### Get specific axis config
+(select axis config request)
+send interupt read to interface 2 to read axis config. this returns
+|  byte  |  Value | Desc  |
+|:------:|:------:|:-----:|
+|  `0`   |  0xff  |       |
+|  `1`   |  0x0b  |       | (seems to be our command)
+|  `2`   |  0x02  |       | (seems to be our command)
+|  `3`   |  0x00  |       | (seems to be our command)
+|  `4`   |  0xXX  | AXIS  | (seems to be our command)
+|  `5`   |  0x00  |       |
+|  `6`   |  0x01  |       |
+|  `7`   |  0x00  |       |
+|  `8`   |  0xXX  | AXIS  |
+| `9-10` | 0x03e8 | XSAT  |
+|`11-12` | 0x03e8 | YSAT  |
+|`13-14` | 0x0000 | DBAND |
+|`15-16` | 0x01f4 | CURVE |
+|  `17`  |  0x00  |PROFILE|
+|`18-19` | 0x7bf4 |  CAL  | (zero for non hall effect sensor)
 
 ---
 
@@ -141,6 +173,46 @@ Packet ??? (Unknown) [Set Report] [wValue 0x0309]
 |  `0`   |  0x09  |       |
 |  `1`   |  0x02  |       |
 |  `2`   |  0x02  | ????? | (so far starts at 0x02 and seen up to 0x03) 
+
+---
+
+### Unknown packet (could be read interrup data size)
+Packet ??? (Unknown) [Set Report] [wValue 0x0309]
+|  byte  |  Value | Desc  |
+|:------:|:------:|:-----:|
+|  `0`   |  0x09  |       |
+|  `1`   |  0x02  |       |
+|  `2`   |  0x02  |       |
+
+followed by a interrupt read on endpoint 2. that returns 
+|  byte  |  Value | Desc  |
+|:------:|:------:|:-----:|
+|  `0`   |  0xff  |       |
+|  `1`   |  0x09  |       |
+|  `2`   |  0x02  |       |
+|  `3`   |  0x02  |       |
+|  `4`   |  0x3f  |       | 
+
+---
+
+### Unknown packet (could be curve array size)
+Packet ??? (Unknown) [Set Report] [wValue 0x0309]
+|  byte  |  Value | Desc  |
+|:------:|:------:|:-----:|
+|  `0`   |  0x09  |       |
+|  `1`   |  0x02  |       |
+|  `2`   |  0x03  |       |
+
+followed by a interrupt read on endpoint 2. that returns 
+|  byte  |  Value | Desc  |
+|:------:|:------:|:-----:|
+|  `0`   |  0xff  |       |
+|  `1`   |  0x09  |       |
+|  `2`   |  0x02  |       |
+|  `3`   |  0x00  |       |
+|  `4`   |  0xob  |       | 
+|  `5`   |  0x55  |       | 
+|  `6`   |  0xd6  |       | 
 
 ---
 

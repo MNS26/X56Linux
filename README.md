@@ -61,20 +61,23 @@ udevadm trigger
 ## Usage
 ### What works and what does not
  [x] RGB <br>
- [ ] Calibrating <br>
+ [x] RGB saving <br>
+ [x] Axis selection <br>
+ [x] Axis reading <br>
+ [ ] Calibration <br>
  [ ] Curves <br>
  [ ] Deadzones <br>
- [ ] Axis selection <br>
 
 
 ### x56-ctrl Command Line Options
 
 | Option | Description |
-|--------|-------------|
-| `-d ID` | Target device (0=both, 1=throttle, 2=joystick) |
-| `-r R,G,B` | Set RGB color (e.g., `-r 255,128,0`) |
-| `-a ID` | Axis ID for configuration (30=X, 31=Y, etc.) |
-| `--get` | Get current axis configuration |
+|:-------|-------------|
+| `-d\|--device number` | Target device (0=both, 1=throttle, 2=joystick) |
+| `-r\|--rgb R,G,B` | Set RGB color (e.g., `-r 255,128,0`) |
+| `-s\|--set axis` | Set Axis configuration (X, Y, Z, T1, etc.) |
+| `-g\|--get axis` | Get axis configuration (X, Y, Z, T1, etc.) |
+| `--get` | Get all axis configuration |
 
 ### Examples
 
@@ -85,11 +88,11 @@ x56-ctrl -d 1 -r 255,0,0
 # Set joystick RGB to cyan
 x56-ctrl -d 2 -r 0,255,255
 
-# Set both devices to purple
+# Set all devices to purple
 x56-ctrl -d 0 -r 128,0,128
 
-# Get throttle X axis configuration
-x56-ctrl -d 1 -a 30 --get
+# Get throttle (Throttle 1) axis configuration
+x56-ctrl -d 1 -g T1
 ```
 
 ## Documentation

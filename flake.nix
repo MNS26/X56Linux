@@ -18,7 +18,7 @@ in
         src = self;
         buildInputs = with pkgs; [ gcc pkg-config libusb1.dev ];
         buildPhase = ''
-          gcc -o x56d -Wall -std=c99 src/main.c src/usb.c $(${pkgs.pkg-config}/bin/pkg-config --cflags --libs libusb-1.0)
+          gcc -o x56d -Wall src/main.cpp src/usb.cpp $(${pkgs.pkg-config}/bin/pkg-config --cflags --libs libusb-1.0)
         '';
         installPhase = ''
           install -Dm755 x56d $out/bin/x56d
@@ -31,7 +31,7 @@ in
         src = self;
         buildInputs = with pkgs; [ gcc pkg-config libusb1];
         buildPhase = ''
-          gcc -o x56-ctrl -Wall -std=c99 src/x56-ctrl.c $(${pkgs.pkg-config}/bin/pkg-config --cflags --libs libusb-1.0)
+          gcc -o x56-ctrl -Wall src/x56-ctrl.cpp $(${pkgs.pkg-config}/bin/pkg-config --cflags --libs libusb-1.0)
         '';
         installPhase = ''
           install -Dm755 x56-ctrl $out/bin/x56-ctrl
@@ -79,11 +79,11 @@ in
         buildInputs = with pkgs; [ gcc pkg-config libusb1.dev];
         shell = pkgs.zsh;
         shellHook = ''
-          exec ${pkgs.zsh}/bin/zsh   # Replace bash with zsh
-          clear
+          exec ${pkgs.zsh}/bin/zsh;   # Replace bash with zsh
+          source ~/.zshrc;
           export PKG_CONFIG_PATH="${pkgs.libusb1.dev}/lib/pkg-config:${pkgs.hidapi}/lib/pkg-config:$PKG_CONFIG_PATH"
           echo "x56d dev shell"
-          echo "Build: gcc -o x56d -Wall -std=c99 src/*.c $(pkg-config --cflags --libs libusb-1.0)"
+          echo "Build: gcc -o x56d -Wall src/*.cpp $(pkg-config --cflags --libs libusb-1.0)"
         '';
       };
     });

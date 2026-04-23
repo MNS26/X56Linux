@@ -44,9 +44,10 @@ int send_control(struct x56_dev *dev, uint16_t w_value, uint8_t *data, uint16_t 
 int get_control(struct x56_dev *dev, uint16_t w_value, uint8_t *data, uint16_t len);
 int read_interrupt(struct x56_dev *dev, uint8_t *data, size_t len);
 struct usb_ctx *usb_init_ctx(void);
-int usb_hotplug_init(struct usb_ctx *ctx, int (*callback)(enum dev_type, int));
+int usb_hotplug_init(struct usb_ctx *ctx, int (*callback)(enum dev_type, int, struct x56_dev *));
 void usb_scan_devices(struct usb_ctx *ctx);
 void usb_free_ctx(struct usb_ctx *ctx);
 int usb_set_rgb(struct x56_dev *dev, uint8_t r, uint8_t g, uint8_t b);
+int usb_save_rgb(struct x56_dev *dev);
 
 #endif
