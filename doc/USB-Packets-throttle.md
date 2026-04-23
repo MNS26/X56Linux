@@ -43,8 +43,8 @@ packet 1 (Set Color)
 
 ---
 
-### Unknown (possible enf of config) 
-Packet 2 (unknown what this does)
+### Save RGB color (so far only seen for RGB colors) 
+Packet 1 (Save RGB color)
 | byte | Value | Desc |
 |:----:|:-----:|:----:|
 | `0`  |  0x01 |      |
@@ -210,14 +210,49 @@ followed by a interrupt read on endpoint 2. that returns
 |  `1`   |  0x09  |       |
 |  `2`   |  0x02  |       |
 |  `3`   |  0x00  |       |
-|  `4`   |  0xob  |       | 
+|  `4`   |  0x0b  |       | 
 |  `5`   |  0x55  |       | 
 |  `6`   |  0xd6  |       | 
 
 ---
 
 ### Update curve
-(select axis )(only saw packet 1 though and not 2)
-send 2047 backets over bulk interface
-65535 * 2 = 131070 / 64 = 2047 packets
-curve is sent as a range from 0x0000 to 0xFFFF
+(select specific axis )
+Throttle1 = 10bit value 
+Throttle2 = 10bit 
+Rotary1 = 8bit
+Rotary2 = 8bit
+Rotary3 = 8bit
+Rotary4 = 8bit
+
+send curve as an array of raw values.<br>
+final entry must be FF (so 03FF for 10bit or FF for 8bit).<br>
+packets are sent over bulk interface. <br>
+```
+10bit
+1024 / 64 * 2(16 -> 8bits) = 32 packets
+
+8bit
+256 / 64 = 4 packets 
+```
+(example 8bit & 10bit)
+```c++
+//8bit
+cuve[0] = 0x00;
+cuve[1] = 0x01;
+/*...*/
+cuve[254] = 0xfd;
+cuve[255] = 0xff;
+
+//10bit
+cuve[0] = 0x0000 >> 8;
+cuve[1] = 0x0000 &  0xff;
+cuve[2] = 0x0001 >> 8;
+cuve[2] = 0x0001 &  0xff;
+/*...*/
+cuve[1020] = 0xfffd >> 8;
+cuve[1021] = 0xfffd & 0xff;
+cuve[1022] = 0xffff >> 8;
+cuve[1023] = 0xff;
+```
+---
