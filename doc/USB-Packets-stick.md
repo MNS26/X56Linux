@@ -212,7 +212,7 @@ packets are sent over bulk interface. <br>
 1024  * 2(16 -> 8bits)  = 2048 packets
 ```
 (example 12bit & 16bit)
-```c++
+```c
 //12bit
 cuve[0] = 0x0000 >> 8;
 cuve[1] = 0x0000 & 0xff;
@@ -221,7 +221,7 @@ cuve[3] = 0x0001 & 0xff;
 /*...*/
 cuve[4092] = 0x0ffd >> 8;
 cuve[4093] = 0x0ffd & 0xff;
-cuve[4094] = 0x0fff >> 8;
+cuve[4094] = 0x0ffe >> 8;
 cuve[4095] = 0xff;
 
 //16bit
@@ -234,6 +234,6 @@ cuve[65530] = 0xfffb >> 8;
 cuve[65531] = 0xfffb & 0xff;
 cuve[65532] = 0xfffc >> 8;
 cuve[65533] = 0xfffc & 0xff;
-cuve[65534] = 0xffff >> 8;
+cuve[65534] = 0xfffd >> 8;
 cuve[65535] = 0xff;
 ```

@@ -40,6 +40,17 @@ int get_control(struct x56_dev *dev, uint16_t w_value, uint8_t *data, uint16_t l
   );
 }
 
+int send_bulk(x56_dev *dev, uint8_t *data, uint16_t len, uint16_t *transfered) {
+  return libusb_bulk_transfer(
+    dev->handle,
+    0x04,
+    data,
+    len,
+    transfered,
+    100
+  )
+}
+
 int read_interrupt(struct x56_dev *dev, uint8_t *data, size_t len)
 {
   return libusb_interrupt_transfer(
@@ -50,6 +61,17 @@ int read_interrupt(struct x56_dev *dev, uint8_t *data, size_t len)
     NULL,
     100
   );
+}
+
+int read_bulk(x56_dev *dev, uint8_t *data, uint16_t len, uint16_t *transfered) {
+  return libusb_bulk_transfer(
+    dev->handle,
+    0x84,
+    data,
+    len,
+    transfered,
+    100
+  )
 }
 
 static int claim_interface(struct x56_dev *dev)

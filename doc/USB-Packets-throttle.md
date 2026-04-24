@@ -236,7 +236,7 @@ packets are sent over bulk interface. <br>
 256 / 64 = 4 packets 
 ```
 (example 8bit & 10bit)
-```c++
+```c
 //8bit
 cuve[0] = 0x00;
 cuve[1] = 0x01;
@@ -252,7 +252,7 @@ cuve[2] = 0x0001 &  0xff;
 /*...*/
 cuve[1020] = 0xfffd >> 8;
 cuve[1021] = 0xfffd & 0xff;
-cuve[1022] = 0xffff >> 8;
+cuve[1022] = 0xfffe >> 8;
 cuve[1023] = 0xff;
 ```
 ---
