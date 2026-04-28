@@ -16,9 +16,9 @@ in
         pname = "x56d";
         version = "1.0.0";
         src = self;
-        buildInputs = with pkgs; [ gcc pkg-config libusb1.dev ];
+        buildInputs = with pkgs; [ gcc pkg-config libusb1.dev];
         buildPhase = ''
-          gcc -o x56d -Wall src/main.cpp src/usb.cpp $(${pkgs.pkg-config}/bin/pkg-config --cflags --libs libusb-1.0)
+          gcc -o x56d -Wall -lm src/main.cpp src/usb.cpp $(${pkgs.pkg-config}/bin/pkg-config --cflags --libs libusb-1.0)
         '';
         installPhase = ''
           install -Dm755 x56d $out/bin/x56d
@@ -31,7 +31,7 @@ in
         src = self;
         buildInputs = with pkgs; [ gcc pkg-config libusb1];
         buildPhase = ''
-          gcc -o x56-ctrl -Wall src/x56-ctrl.cpp $(${pkgs.pkg-config}/bin/pkg-config --cflags --libs libusb-1.0)
+          gcc -o x56-ctrl -Wall -lm src/x56-ctrl.cpp $(${pkgs.pkg-config}/bin/pkg-config --cflags --libs libusb-1.0)
         '';
         installPhase = ''
           install -Dm755 x56-ctrl $out/bin/x56-ctrl

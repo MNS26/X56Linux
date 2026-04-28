@@ -61,12 +61,16 @@ udevadm trigger
 ## Usage
 ### What works and what does not
  [x] RGB <br>
- [x] RGB saving <br>
- [x] Axis selection <br>
- [x] Axis reading <br>
- [ ] Calibration <br>
- [ ] Curves <br>
- [ ] Deadzones <br>
+ - [x] saving <br>
+ [-] Axis configuration
+ - [x] selection <br>
+ - [x] reading <br>
+ - [x] writing <br>
+ - [ ] Calibration <br>
+ [-] Curves <br>
+ - [x] generation <br>
+ - [ ] writing <br>
+ - [ ] customization <br>
 
 
 ### x56-ctrl Command Line Options

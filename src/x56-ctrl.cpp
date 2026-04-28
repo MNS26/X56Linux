@@ -1,4 +1,3 @@
-#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -55,6 +54,7 @@ void printHelp() {
     fprintf(stderr, "  -s|--set AXIS    Set axis configuration\n");
     fprintf(stderr, "  -c|--calibrate   Calibrate axis (rest position)\n");
     fprintf(stderr, "  -R|--reset       Reset axis to defaults\n");
+    fprintf(stderr, "  -u|--upload      Upload stored curve to device\n");
     fprintf(stderr, "  -r|--rgb R,G,B   Set RGB LED color\n");
     fprintf(stderr, "  -S|--save        Save RGB color on the device\n");
     fprintf(stderr, "  -i|--input       Start input stream\n");
@@ -82,6 +82,7 @@ static struct option long_options[] = {
     {"set",         required_argument,  0, 's'},
     {"calibrate",   optional_argument,  0, 'c'},
     {"reset",       optional_argument,  0, 'R'},
+    {"upload",      optional_argument,  0, 'u'},
     {"rgb",         required_argument,  0, 'r'},
     {"save",        no_argument,        0, 'S'},
     {"input",       no_argument,        0, 'i'},
@@ -213,7 +214,7 @@ int main(int argc, char *argv[]) {
     int opt;
     int option_index = 0;
 
-    while ((opt = getopt_long(argc, argv, "d:lg:s:c:R:r:iSq:x:y:z:k:h",
+    while ((opt = getopt_long(argc, argv, "d:lg:s:c:R:r:iSqx:y:z:k:u:h",
         long_options, &option_index)) != -1) {
         switch (opt) {
         case 'd':
@@ -248,6 +249,15 @@ int main(int argc, char *argv[]) {
                 axis = get_axis_id(optarg);
             }
             break;
+        case 'u':
+            cmd = CMD_CURVE;
+            if (optarg) {
+                axis = get_axis_id(optarg);
+            } else {
+                fprintf(stderr, "-u requires an axis argument (e.g., -u Throttle1)\n");
+                return 1;
+            }
+            break;
         case 'r': {
             if (!optarg) {
                 fprintf(stderr, "RGB requires value (e.g., -r 255,0,0)\n");
@@ -279,32 +289,32 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr, "-x requires -s|--set\n");
                 return 1;
             }
-            ((uint16_t*)set_data)[0] = atoi(optarg);
-            set_count += 2;
+            set_data[0] |= CFG_XSAT;
+            *(uint16_t*)&set_data[CFG_VALUE_XSAT] = atoi(optarg);
             break;
         case 'y':
             if (cmd != CMD_SET) {
                 fprintf(stderr, "-y requires -s|--set\n");
                 return 1;
             }
-            ((uint16_t*)set_data)[1] = atoi(optarg);
-            set_count += 2;
+            set_data[0] |= CFG_YSAT;
+            *(uint16_t*)&set_data[CFG_VALUE_YSAT] = atoi(optarg);
             break;
         case 'z':
             if (cmd != CMD_SET) {
                 fprintf(stderr, "-z requires -s|--set\n");
                 return 1;
             }
-            ((uint16_t*)set_data)[2] = atoi(optarg);
-            set_count += 2;
+            set_data[0] |= CFG_DEADBAND;
+            *(uint16_t*)&set_data[CFG_VALUE_DEADBAND] = atoi(optarg);
             break;
         case 'k':
             if (cmd != CMD_SET) {
                 fprintf(stderr, "-k requires -s|--set\n");
                 return 1;
             }
-            ((uint16_t*)set_data)[3] = atoi(optarg);
-            set_count += 2;
+            set_data[0] |= CFG_CURVE;
+            *(uint16_t*)&set_data[CFG_VALUE_CURVE] = atoi(optarg);
             break;
         case 'h':
         default:
@@ -321,6 +331,14 @@ int main(int argc, char *argv[]) {
     if (cmd == CMD_NONE) {
         fprintf(stderr, "Command required\n");
         return 1;
+    }
+
+    // For SET commands, ensure we send enough data
+    if (cmd == CMD_SET && set_data[0] != 0) {
+        // Find the highest offset used and set count accordingly
+        // Profile is at 10 (1 byte), Calibration at 11 (2 bytes)
+        // So we need to send at least 13 bytes to cover everything
+        set_count = 14;
     }
 
     return send_cmd(device, cmd, axis, set_data, set_count);
