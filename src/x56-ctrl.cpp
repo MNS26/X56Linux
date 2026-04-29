@@ -28,20 +28,36 @@ static void signal_handler(int sig) {
 static uint8_t get_axis_id(const char *name) {
     if (!name || name[0] == 0) return 0;
 
-    //Joystick
-    if (strcasecmp(name, "X") == 0) return 0x30;
-    if (strcasecmp(name, "Y") == 0) return 0x31;
-    if (strcasecmp(name, "Z") == 0) return 0x35;
     
-    // Throttle
-    if (strcasecmp(name, "Throttle1") == 0 || strcasecmp(name, "T1") == 0) return 0x30;
-    if (strcasecmp(name, "Throttle2") == 0 || strcasecmp(name, "T2") == 0) return 0x31;
-    if (strcasecmp(name, "Rotary1"  ) == 0 || strcasecmp(name, "R1") == 0) return 0x32;
+    if (
+        strcasecmp(name, "X")         == 0 ||
+        strcasecmp(name, "Throttle1") == 0 ||
+        strcasecmp(name, "T1")        == 0
+    ) return 0x30;
+    if (
+        strcasecmp(name, "Y")         == 0 ||
+        strcasecmp(name, "Throttle2") == 0 ||
+        strcasecmp(name, "T2")        == 0
+    ) return 0x31;
+    if (
+        strcasecmp(name, "Rotary1")   == 0 ||
+        strcasecmp(name, "R1")        == 0
+    ) return 0x32;
+    if (
+        strcasecmp(name, "Z")         == 0 ||
+        strcasecmp(name, "Rotary2")   == 0 ||
+        strcasecmp(name, "R2")        == 0
+    ) return 0x35;
+    if (
+        strcasecmp(name, "Rotary4")   == 0 ||
+        strcasecmp(name, "R4")        == 0
+    ) return 0x36;
+    if (
+        strcasecmp(name, "Rotary3")   == 0 ||
+        strcasecmp(name, "R3")        == 0
+    ) return 0x37;
 //    if (strcasecmp(name, "Unknown1" ) == 0 || strcasecmp(name, "U1" ) == 0) return 0x33;
 //    if (strcasecmp(name, "Unknown2" ) == 0 || strcasecmp(name, "U2" ) == 0) return 0x34;
-    if (strcasecmp(name, "Rotary2"  ) == 0 || strcasecmp(name, "R2") == 0) return 0x35;
-    if (strcasecmp(name, "Rotary4"  ) == 0 || strcasecmp(name, "R4") == 0) return 0x36;
-    if (strcasecmp(name, "Rotary3"  ) == 0 || strcasecmp(name, "R3") == 0) return 0x37;
 
     return (uint8_t)atoi(name);
 }

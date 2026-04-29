@@ -61,11 +61,13 @@ udevadm trigger
 ## Usage
 ### What works and what does not
  - [x] RGB
+   - [x] change
    - [x] saving
  - [ ] Axis configuration
    - [x] selection
    - [x] reading
    - [x] writing
+   - [x] reset
    - [ ] Calibration
  - [ ] Curves
    - [x] generation

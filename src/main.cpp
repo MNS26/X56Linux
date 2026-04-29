@@ -23,22 +23,34 @@
 #define MAX_DEVICES 8
 #define CALIBRATE_DURATION_MS 5000
 #define sizeof_array(array) sizeof(array)/sizeof(array[0])
+#define sleepms(time) usleep(time*1000)
 #define ENABLE_DEBUG 1
 #if ENABLE_DEBUG == 1 
 #define DEBUG_PRINT(...) do { fprintf(stderr, __VA_ARGS__); fflush(stderr); } while(0)
 #define PRINT_PACKET(data, size) do {\
-                                DEBUG_PRINT("packet:\n");\
-                                for (size_t i =0; i <size; i++) {\
-                                    DEBUG_PRINT("0x%02X ",((uint8_t*)(data))[i]);\
-                                    if (i+1 > 1 && (i+1) % 8 == 0)\
-                                        DEBUG_PRINT("\n");\
-                                }\
-                                DEBUG_PRINT("\n");\
-                            } while(0)
+    DEBUG_PRINT("packet:\n");\
+    for (size_t i =0; i <size; i++) {\
+        DEBUG_PRINT("0x%02X ",((uint8_t*)(data))[i]);\
+        if (i+1 > 1 && (i+1) % 8 == 0)\
+            DEBUG_PRINT("\n");\
+    }\
+    DEBUG_PRINT("\n");\
+} while(0)
+#define PRINT_CURVE(curve, curve_size) do {\
+    DEBUG_PRINT("curve_size: %4d bytes\n",curve_size);\
+    if (curve_size > UINT8_MAX)\
+        curve_size*=2;\
+    for (size_t i =0; i < curve_size; i++) {\
+        DEBUG_PRINT("0x%02X ",((uint8_t*)curve)[i]);\
+        if (i+1 > 1 && (i+1) % 8 == 0)\
+            DEBUG_PRINT("\n");\
+    }\
+    DEBUG_PRINT("\n");\
+} while (0)
 #else
 #define DEBUG_PRINT(...) do {} while(0)
 #define PRINT_PACKET(data, size) do {} while(0)
-
+#define PRINT_CURVE(curve, curve_size) do {} while (0)
 #endif
 
 static volatile int running = 1;
@@ -272,34 +284,28 @@ static int generate_axis_curve(const configuration_t *config, void *curve, uint3
     }
     switch (size)
     {
-        case 1 ... 255:{      // 8bit
-            uint8_t* c = (uint8_t*)curve;
-            for (size_t i=0; i < size-1; i++) {
-                c[i] = i;
-            }
-            c[size-1] = (uint8_t)size;
+        case 1 ... 255:{      // 8bits or less
+            generate_curve_power_8b(config,(uint8_t*)curve, size);
+//            uint8_t* c = (uint8_t*)curve;
+//            for (size_t i=0; i < size-1; i++) {
+//                c[i] = i;
+//            }
+//            c[size-1] = (uint8_t)size|0xFF;
             break;
         }
-        case 256 ... 1023:    // 10 bit
-        case 1024 ... 4095: { // 12 bit
-            uint16_t* c = (uint16_t*)curve;
-            for (size_t i=0; i < size-1; i++) {
-                c[i] = htobe16((uint16_t)i);
-            }
-            c[size-1] = htobe16((uint16_t)size);
-            break;
-        }
-        case 4096 ... 65535: { // 16 bit
-            uint16_t* c = (uint16_t*)curve;
-            for (size_t i=0; i < size-1; i++) {
-                c[i] = htobe16((uint16_t)i);
-            }
-            c[size-1] = htobe16((uint16_t)size)|0xFFFF;
+        case 256 ... 65535: { //  larger than 8bits
+            generate_curve_power(config,(uint16_t*)curve, size);
+//            uint16_t* c = (uint16_t*)curve;
+//            for (size_t i=0; i < size-1; i++) {
+//                c[i] = htobe16((uint16_t)i);
+//            }
+//            c[size-1] = htobe16((uint16_t)size)|0xFF;
             break;
         }
         default:
             break;
     }
+    PRINT_CURVE(curve,size);
     return 0;
 }
 
@@ -619,15 +625,7 @@ static void handle_client(int client_fd, struct usb_ctx *ctx) {
             if (curve && curve_size > 0) {
                 int ret = 0;
 
-                DEBUG_PRINT("curve_size: %04d long\n",curve_size);
-                DEBUG_PRINT("curve:\n");
-                if (curve_size > UINT8_MAX) curve_size*=2;// 2x bytes per value
-                for (size_t i =0; i < curve_size; i++) {
-                    DEBUG_PRINT("0x%02X ",((uint8_t*)curve)[i]);
-                    if (i+1 > 1 && (i+1) % 8 == 0)
-                        DEBUG_PRINT("\n");
-                }
-                DEBUG_PRINT("\n");
+
                 //int ret = send_curve_bulk(dev, msg.axis, curve, curve_size);
                 if (ret < 0) error = -ret;
             } else {
@@ -652,7 +650,34 @@ static void handle_client(int client_fd, struct usb_ctx *ctx) {
             return;
         }
         case CMD_RESET: {
-            int ret = set_axis_defaults(dev, msg.axis);
+            // only will have to set calibration for hall axis
+            configuration_t defaults = {
+                .xsat = 1000,
+                .ysat = 1000,
+                .deadband = 0,
+                .curve = 500,
+                .profile = 0,
+                .calibration = 0
+            };
+            if (dev->type == DEV_THROTTLE) {
+                switch (msg.axis) {
+                    case 0x30:{break;}
+                    case 0x31:{break;}
+                    case 0x32:{break;}
+                    case 0x35:{break;}
+                    case 0x37:{break;}
+                    case 0x36:{break;}
+                    default:break;
+                }
+            } else if (dev->type == DEV_JOYSTICK) {
+                switch (msg.axis) {
+                    case 0x30:{defaults.calibration = configuration_joystick.X.config.calibration; break;}
+                    case 0x31:{defaults.calibration = configuration_joystick.Y.config.calibration; break;}
+                    case 0x35:{ break;}
+                    default:break;
+                }
+            }
+            int ret = set_axis_config(dev, msg.axis, &defaults);
             if (ret < 0) error = -ret;
             break;
         }
@@ -785,20 +810,19 @@ static int device_callback(enum dev_type type, int connected, struct x56_dev *de
     if (!connected || !dev) return 0;
 
     DEBUG_PRINT("DEBUG: Populating config for device %d\n", dev->id);
-
     switch (type) {
         case DEV_THROTTLE:
-            get_axis_config(dev, 30, &configuration_throttle.Throttle1.config);
-            get_axis_config(dev, 31, &configuration_throttle.Throttle2.config);
-            get_axis_config(dev, 32, &configuration_throttle.Rotary1.config);
-            get_axis_config(dev, 35, &configuration_throttle.Rotary2.config);
-            get_axis_config(dev, 37, &configuration_throttle.Rotary3.config);
-            get_axis_config(dev, 36, &configuration_throttle.Rotary4.config);
+            get_axis_config(dev, 0x30, &configuration_throttle.Throttle1.config);
+            get_axis_config(dev, 0x31, &configuration_throttle.Throttle2.config);
+            get_axis_config(dev, 0x32, &configuration_throttle.Rotary1.config);
+            get_axis_config(dev, 0x35, &configuration_throttle.Rotary2.config);
+            get_axis_config(dev, 0x37, &configuration_throttle.Rotary3.config);
+            get_axis_config(dev, 0x36, &configuration_throttle.Rotary4.config);
             break;
         case DEV_JOYSTICK:
-            get_axis_config(dev, 30, &configuration_joystick.X.config);
-            get_axis_config(dev, 31, &configuration_joystick.Y.config);
-            get_axis_config(dev, 35, &configuration_joystick.Rz.config);
+            get_axis_config(dev, 0x30, &configuration_joystick.X.config);
+            get_axis_config(dev, 0x31, &configuration_joystick.Y.config);
+            get_axis_config(dev, 0x35, &configuration_joystick.Rz.config);
             break;
         case DEV_NONE:
         default:
