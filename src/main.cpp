@@ -37,7 +37,7 @@
     DEBUG_PRINT("\n");\
 } while(0)
 #define PRINT_CURVE(curve, curve_size) do {\
-    DEBUG_PRINT("curve_size: %4d bytes\n",curve_size);\
+    DEBUG_PRINT("curve_size: %5d bytes\n",curve_size);\
     if (curve_size > UINT8_MAX)\
         curve_size*=2;\
     for (size_t i =0; i < curve_size; i++) {\
@@ -114,31 +114,15 @@ static int get_axis_config(struct x56_dev *dev, uint8_t axis, configuration_t *c
     cfg->calibration = (data[18] << 8) | data[19];
 
     PRINT_PACKET(data, 64);
-//#if ENABLE_DEBUG
-//    DEBUG_PRINT("packet:\n");
-//    for (uint8_t i =0; i <64; i++) {
-//        DEBUG_PRINT("0x%02X ",data[i]);
-//        if (i+1 > 1 && (i+1) % 8 == 0)
-//            DEBUG_PRINT("\n");
-//    }
-//    DEBUG_PRINT("\n");
-//#endif
-    DEBUG_PRINT(
-        "xsat=0x%04X ysat=0x%04X deadband=0x%04X curve=0x%04X profile=0x%02X calibration=0x%04X\n",
-        cfg->xsat,
-        cfg->ysat,
-        cfg->deadband,
-        cfg->curve,
-        cfg->profile,
-        cfg->calibration
-    );
-
+    DEBUG_PRINT("axis config\n");
+    DEBUG_PRINT("xsat        = %4d\n",cfg->xsat);
+    DEBUG_PRINT("ysat        = %4d\n",cfg->ysat);
+    DEBUG_PRINT("deadband    = %4d\n",cfg->deadband);
+    DEBUG_PRINT("curve       = %4d\n",cfg->curve);
+    DEBUG_PRINT("profile     = %4d\n",cfg->profile);
+    DEBUG_PRINT("calibration = %4d\n",cfg->calibration);
     return 0;
 }
-
-// Forward declarations
-static void generate_curve_power(const configuration_t *config, uint16_t *curve, uint32_t size);
-static void generate_curve_power_8b(const configuration_t *config, uint8_t *curve, uint32_t size);
 
 // Generate a curve lookup table based on axis configuration
 // Uses power curve method: output = sign(input) * |input|^gamma
@@ -149,7 +133,7 @@ static void generate_curve_power(const configuration_t *config, uint16_t *curve,
     double curve_param = config->curve / 500.0;  // 1.0 = linear
     int profile = config->profile;  // 0 = S-curve (joystick), 1 = J-curve (dial)
 
-    for (uint16_t i = 0; i < size; i++) {
+    for (size_t i = 0; i < size; i++) {
         // Map index to normalized range [0, 1]
         double normalized = (double)i / (size - 1);
 
@@ -199,21 +183,28 @@ static void generate_curve_power(const configuration_t *config, uint16_t *curve,
         }
         double curved = sign * abs_val;
 
-        // Scale to output range based on ysat
-        double output = curved * (config->ysat / 2.0);
+        // Get maximum size of the curve based on the array and ysat
+        double scale = config->ysat /1000.0f;        
+        // Scale to output range based on the array size
+        double max_output = (size - 1) * scale;
 
-        // Handle profile output mapping
-        uint16_t result;
+        // Map output range based on profile
+        double output;
         if (profile == 0) {
-            // S-curve: map [-ysat/2, ysat/2] to [0, ysat]
-            result = (uint16_t)(output + (config->ysat / 2.0));
+            // S-curve: map [-1, 1] to [0, max_output]
+            output = (curved + 1.0) * (max_output / 2.0);
         } else {
-            // J-curve: output is already in [0, ysat] range
-            result = (uint16_t)(output + 0.5);
+            // J-curve: map [0, 1] to [0, max_output]
+            output = curved * max_output;
         }
 
-        // Clamp to valid range
-        curve[i] = htobe16((result > config->ysat) ? config->ysat : result);
+        //Clamp and convert to full int
+        uint16_t result = (uint16_t)(output + 0.5);
+        if (result > max_output) result = (uint16_t)max_output;
+        if (result < 0) result = 0;
+
+        // Write as big-endian. this is what the X56 expects over bulk transfer port
+        curve[i] = htobe16(result);
     }
 }
 
@@ -278,7 +269,7 @@ static void generate_curve_power_8b(const configuration_t *config, uint8_t *curv
 // Main entry point - generates curve and stores it
 // Returns 0 on success
 // curve: pointer to curve array (uint8_t* or uint16_t* depending on curve type)
-static int generate_axis_curve(const configuration_t *config, void *curve, uint32_t size, int is_16bit) {
+static int generate_axis_curve(const configuration_t *config, void *curve, uint32_t size) {
     if (!config || !curve || size == 0) {
         return -1;
     }
@@ -305,7 +296,6 @@ static int generate_axis_curve(const configuration_t *config, void *curve, uint3
         default:
             break;
     }
-    PRINT_CURVE(curve,size);
     return 0;
 }
 
@@ -583,18 +573,18 @@ static void handle_client(int client_fd, struct usb_ctx *ctx) {
                 if (update_curve) {
                     if (dev->type == DEV_THROTTLE) {
                         switch (msg.axis) {
-                            case 0x30: generate_axis_curve(stored_cfg, configuration_throttle.Throttle1.curve, sizeof_array(configuration_throttle.Throttle1.curve), 1); break;
-                            case 0x31: generate_axis_curve(stored_cfg, configuration_throttle.Throttle2.curve, sizeof_array(configuration_throttle.Throttle2.curve), 1); break;
-                            case 0x32: generate_axis_curve(stored_cfg, configuration_throttle.Rotary1.curve, sizeof_array(configuration_throttle.Rotary1.curve), 0); break;
-                            case 0x35: generate_axis_curve(stored_cfg, configuration_throttle.Rotary2.curve, sizeof_array(configuration_throttle.Rotary2.curve), 0); break;
-                            case 0x36: generate_axis_curve(stored_cfg, configuration_throttle.Rotary4.curve, sizeof_array(configuration_throttle.Rotary4.curve), 0); break;
-                            case 0x37: generate_axis_curve(stored_cfg, configuration_throttle.Rotary3.curve, sizeof_array(configuration_throttle.Rotary3.curve), 0); break;
+                            case 0x30: generate_axis_curve(stored_cfg, configuration_throttle.Throttle1.curve, sizeof_array(configuration_throttle.Throttle1.curve)); break;
+                            case 0x31: generate_axis_curve(stored_cfg, configuration_throttle.Throttle2.curve, sizeof_array(configuration_throttle.Throttle2.curve)); break;
+                            case 0x32: generate_axis_curve(stored_cfg, configuration_throttle.Rotary1.curve, sizeof_array(configuration_throttle.Rotary1.curve)); break;
+                            case 0x35: generate_axis_curve(stored_cfg, configuration_throttle.Rotary2.curve, sizeof_array(configuration_throttle.Rotary2.curve)); break;
+                            case 0x36: generate_axis_curve(stored_cfg, configuration_throttle.Rotary4.curve, sizeof_array(configuration_throttle.Rotary4.curve)); break;
+                            case 0x37: generate_axis_curve(stored_cfg, configuration_throttle.Rotary3.curve, sizeof_array(configuration_throttle.Rotary3.curve)); break;
                         }
                     } else if (dev->type == DEV_JOYSTICK) {
                         switch (msg.axis) {
-                            case 0x30: generate_axis_curve(stored_cfg, configuration_joystick.X.curve, sizeof_array(configuration_joystick.X.curve), 1); break;
-                            case 0x31: generate_axis_curve(stored_cfg, configuration_joystick.Y.curve, sizeof_array(configuration_joystick.Y.curve), 1); break;
-                            case 0x35: generate_axis_curve(stored_cfg, configuration_joystick.Rz.curve, sizeof_array(configuration_joystick.Rz.curve), 1); break;
+                            case 0x30: generate_axis_curve(stored_cfg, configuration_joystick.X.curve, sizeof_array(configuration_joystick.X.curve)); break;
+                            case 0x31: generate_axis_curve(stored_cfg, configuration_joystick.Y.curve, sizeof_array(configuration_joystick.Y.curve)); break;
+                            case 0x35: generate_axis_curve(stored_cfg, configuration_joystick.Rz.curve, sizeof_array(configuration_joystick.Rz.curve)); break;
                         }
                     }
                 }
@@ -624,8 +614,7 @@ static void handle_client(int client_fd, struct usb_ctx *ctx) {
             }
             if (curve && curve_size > 0) {
                 int ret = 0;
-
-
+                PRINT_CURVE(curve,curve_size);
                 //int ret = send_curve_bulk(dev, msg.axis, curve, curve_size);
                 if (ret < 0) error = -ret;
             } else {
@@ -799,13 +788,10 @@ static void populate_axis_config(struct x56_dev *dev, uint8_t axis, configuratio
             cfg->calibration = (data[36] << 8) | data[37];
         }
     }
-
     DEBUG_PRINT("DEBUG: axis=%d xsat=%d curve=%d\n", axis, cfg->xsat, cfg->curve);
 }
 
 static int device_callback(enum dev_type type, int connected, struct x56_dev *dev) {
-    (void)type;
-    (void)connected;
     // early return when disconnect
     if (!connected || !dev) return 0;
 
@@ -816,13 +802,22 @@ static int device_callback(enum dev_type type, int connected, struct x56_dev *de
             get_axis_config(dev, 0x31, &configuration_throttle.Throttle2.config);
             get_axis_config(dev, 0x32, &configuration_throttle.Rotary1.config);
             get_axis_config(dev, 0x35, &configuration_throttle.Rotary2.config);
-            get_axis_config(dev, 0x37, &configuration_throttle.Rotary3.config);
             get_axis_config(dev, 0x36, &configuration_throttle.Rotary4.config);
+            get_axis_config(dev, 0x37, &configuration_throttle.Rotary3.config);
+            generate_axis_curve(&configuration_throttle.Throttle1.config, configuration_throttle.Throttle1.curve, sizeof_array(configuration_throttle.Throttle1.curve));
+            generate_axis_curve(&configuration_throttle.Throttle2.config, configuration_throttle.Throttle2.curve, sizeof_array(configuration_throttle.Throttle2.curve));
+            generate_axis_curve(&configuration_throttle.Rotary1.config, configuration_throttle.Rotary1.curve, sizeof_array(configuration_throttle.Rotary1.curve));
+            generate_axis_curve(&configuration_throttle.Rotary2.config, configuration_throttle.Rotary2.curve, sizeof_array(configuration_throttle.Rotary2.curve));           
+            generate_axis_curve(&configuration_throttle.Rotary4.config, configuration_throttle.Rotary4.curve, sizeof_array(configuration_throttle.Rotary4.curve));           
+            generate_axis_curve(&configuration_throttle.Rotary3.config, configuration_throttle.Rotary3.curve, sizeof_array(configuration_throttle.Rotary3.curve));           
             break;
         case DEV_JOYSTICK:
             get_axis_config(dev, 0x30, &configuration_joystick.X.config);
             get_axis_config(dev, 0x31, &configuration_joystick.Y.config);
             get_axis_config(dev, 0x35, &configuration_joystick.Rz.config);
+            generate_axis_curve(&configuration_joystick.X.config, configuration_joystick.X.curve, sizeof_array(configuration_joystick.X.curve));
+            generate_axis_curve(&configuration_joystick.Y.config, configuration_joystick.Y.curve, sizeof_array(configuration_joystick.Y.curve));
+            generate_axis_curve(&configuration_joystick.Rz.config, configuration_joystick.Rz.curve, sizeof_array(configuration_joystick.Rz.curve));
             break;
         case DEV_NONE:
         default:
