@@ -18,7 +18,7 @@ in
         src = self;
         buildInputs = with pkgs; [ gcc pkg-config libusb1.dev];
         buildPhase = ''
-          gcc -o x56d -Wall -lm src/main.cpp src/usb.cpp $(${pkgs.pkg-config}/bin/pkg-config --cflags --libs libusb-1.0)
+          gcc -o x56d -Wall -lm src/main.cpp src/usb.cpp src/curve.cpp $(${pkgs.pkg-config}/bin/pkg-config --cflags --libs libusb-1.0)
         '';
         installPhase = ''
           install -Dm755 x56d $out/bin/x56d

@@ -83,7 +83,7 @@ typedef struct axis_config_t {
   uint16_t x_sat;
   uint16_t y_sat;
   uint16_t deadband;
-  uint16_t curve;
+  uint16_t curvature;
   uint8_t profile;
   uint16_t hall_calibration; // zero for non hall effect axis
 } axis_config_t;

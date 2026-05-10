@@ -54,6 +54,44 @@ int send_bulk(x56_dev *dev, uint8_t *data, uint16_t len, uint16_t *transfered) {
   return ret;
 }
 
+int send_bulk_curve(x56_dev *dev, uint8_t *data, uint32_t len) {
+  uint8_t *bytes = data;
+  uint32_t remaining = len;
+  uint32_t total_transferred = 0;
+  int ret;
+
+  while (remaining > 0) {
+    uint8_t buf[64] = {0};
+    uint16_t to_copy = (remaining > 64) ? 64 : remaining;
+    memcpy(buf, bytes, to_copy);
+    uint16_t transferred = 0;
+
+    ret = send_bulk(dev, buf, 64, &transferred);
+
+    if (ret < 0) {
+      return ret;
+    }
+
+    bytes += to_copy;
+    remaining -= to_copy;
+    total_transferred += to_copy;
+
+    if (transferred == 0) {
+      return -1;
+    }
+
+    if (remaining > 0) {
+      usleep(1000);
+    }
+  }
+
+  uint8_t dummy_buf[1];
+  uint16_t zlp_transferred = 0;
+  ret = send_bulk(dev, dummy_buf, 0, &zlp_transferred);
+
+  return total_transferred;
+}
+
 int read_interrupt(struct x56_dev *dev, uint8_t *data, size_t len)
 {
   return libusb_interrupt_transfer(
@@ -162,9 +200,9 @@ static int handle_hotplug(libusb_context *ctx, libusb_device *device,
       if (d && d->bus == bus && d->addr == addr) {
         enum dev_type dev_type = d->type;
         fprintf(stderr, "Device disconnected: id=%d\n", d->id);
-        //if (d->handle) libusb_close(d->handle);
+        uctx->devices[i] = NULL;  // Set to NULL first to prevent use-after-free
+        if (d->handle) libusb_close(d->handle);
         free(d);
-        uctx->devices[i] = NULL;
         if (hp->callback) {
           hp->callback(dev_type, 0, NULL);
         }

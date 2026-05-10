@@ -45,6 +45,7 @@ int get_control(struct x56_dev *dev, uint16_t w_value, uint8_t *data, uint16_t l
 int send_bulk(struct x56_dev *dev, uint8_t *data, uint16_t len, uint16_t *transfered);
 int read_interrupt(struct x56_dev *dev, uint8_t *data, size_t len);
 int read_bulk(struct x56_dev *dev, uint8_t *data, uint16_t len, uint16_t *transfered);
+int send_bulk_curve(struct x56_dev *dev, uint8_t *data, uint32_t len);
 struct usb_ctx *usb_init_ctx(void);
 int usb_hotplug_init(struct usb_ctx *ctx, int (*callback)(enum dev_type, int, struct x56_dev *));
 void usb_scan_devices(struct usb_ctx *ctx);

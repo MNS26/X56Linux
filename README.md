@@ -1,5 +1,3 @@
-# <b>!!!THIS PROJECT IS NOT FULLY COMPLETE AND IS A ONGOING!!!</b>
-
 # X-56 HOTAS on Linux
 fist things first... this project is based on an existing project by `Chryseus` [x56linux](https://github.com/Chryseus/x56linux) parts of the code used come from there. he has done an amazing job finding the usb packets. 
 
@@ -71,7 +69,7 @@ udevadm trigger
    - [ ] Calibration
  - [ ] Curves
    - [x] generation
-   - [ ] writing
+   - [x] writing
    - [ ] customization
 
 ### x56-ctrl Command Line Options

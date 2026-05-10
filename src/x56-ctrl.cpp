@@ -80,6 +80,7 @@ void printHelp() {
     fprintf(stderr, "  -x|--xsat N      X saturation\n");
     fprintf(stderr, "  -y|--ysat N      Y saturation\n");
     fprintf(stderr, "  -z|--deadzone N  Deadzone\n");
+    fprintf(stderr, "  -p|--profile N   Slider or Joystick profile\n");
     fprintf(stderr, "  -k|--curve N     Curve\n");
     fprintf(stderr, "\nExamples:\n");
     fprintf(stderr, "  x56-ctrl -l                         List devices\n");
@@ -98,7 +99,7 @@ static struct option long_options[] = {
     {"set",         required_argument,  0, 's'},
     {"calibrate",   optional_argument,  0, 'c'},
     {"reset",       optional_argument,  0, 'R'},
-    {"upload",      optional_argument,  0, 'u'},
+    {"upload",      required_argument,  0, 'u'},
     {"rgb",         required_argument,  0, 'r'},
     {"save",        no_argument,        0, 'S'},
     {"input",       no_argument,        0, 'i'},
@@ -107,6 +108,7 @@ static struct option long_options[] = {
     {"ysat",        required_argument,  0, 'y'},
     {"deadzone",    required_argument,  0, 'z'},
     {"curve",       required_argument,  0, 'k'},
+    {"profile",     optional_argument,  0, 'p'},
     {"help",        no_argument,        0, 'h'},
     {0, 0, 0, 0},
 };
@@ -188,7 +190,7 @@ static int send_cmd(uint8_t device, cmd_type_t cmd, uint8_t axis, uint8_t *data,
                 printf("  xsat: %d\n", cfg->x_sat);
                 printf("  ysat: %d\n", cfg->y_sat);
                 printf("  deadzone: %d\n", cfg->deadband);
-                printf("  curve: %d\n", cfg->curve);
+                printf("  curve: %d\n", cfg->curvature);
                 printf("  profile: %d\n", cfg->profile);
                 printf("  calibration: %d\n", cfg->hall_calibration);
             } else if (msg.msg_type == MSG_CMD && msg.cmd == CMD_LIST) {
@@ -230,7 +232,7 @@ int main(int argc, char *argv[]) {
     int opt;
     int option_index = 0;
 
-    while ((opt = getopt_long(argc, argv, "d:lg:s:c:R:r:iSqx:y:z:k:u:h",
+    while ((opt = getopt_long(argc, argv, "d:lg:s:c:R:r:iSqx:y:z:k:p:u:h",
         long_options, &option_index)) != -1) {
         switch (opt) {
         case 'd':
@@ -331,6 +333,14 @@ int main(int argc, char *argv[]) {
             }
             set_data[0] |= CFG_CURVE;
             *(uint16_t*)&set_data[CFG_VALUE_CURVE] = atoi(optarg);
+            break;
+        case 'p':
+            if (cmd != CMD_SET) {
+                fprintf(stderr, "-k requires -s|--set\n");
+                return 1;
+            }
+            set_data[0] |= CFG_PROFILE;
+            *(uint16_t*)&set_data[CFG_VALUE_PROFILE] = atoi(optarg);
             break;
         case 'h':
         default:
